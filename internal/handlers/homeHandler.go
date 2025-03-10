@@ -19,12 +19,44 @@ const HTML_PAGE string = `
 </head>
 <body>
     <h1>Enviar Vídeo</h1>
-  <form action="http://localhost:8080/video" method="post" enctype="multipart/form-data">
+    
+    <form id="uploadForm" enctype="multipart/form-data">
         <label for="video">Escolha um vídeo para enviar:</label>
         <input type="file" id="video" name="video" accept="video/*" required>
         <br><br>
         <input type="submit" value="Enviar Vídeo">
     </form>
+
+    <p id="mensagem"></p>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Impede o redirecionamento
+
+            const formData = new FormData();
+            const fileInput = document.getElementById("video");
+
+            if (fileInput.files.length === 0) {
+                document.getElementById("mensagem").innerText = "Selecione um vídeo antes de enviar.";
+                return;
+            }
+
+            formData.append("video", fileInput.files[0]);
+
+            fetch("http://localhost:8080/video", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("mensagem").innerText = "Vídeo enviado com sucesso!";
+            })
+            .catch(error => {
+                document.getElementById("mensagem").innerText = "Erro ao enviar o vídeo.";
+                console.error("Erro:", error);
+            });
+        });
+    </script>
 </body>
 </html>
 `
