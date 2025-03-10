@@ -1,4 +1,4 @@
-package internal
+package handlers
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 
-func postVideo(writer http.ResponseWriter, request *http.Request) {
+func VideoFileHandler(writer http.ResponseWriter, request *http.Request) {
   if request.Method != "POST" {
     http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
     return
