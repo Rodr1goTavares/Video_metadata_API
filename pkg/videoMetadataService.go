@@ -21,8 +21,6 @@ type VideoMetadata struct {
 }
 
 
-
-
 func ExtractVideoMetadata(fileHeader *multipart.FileHeader, file *multipart.File) (*VideoMetadata, error) {
 	// Create temp file
 	tempFile, err := os.CreateTemp("", "uploaded-*.mp4")

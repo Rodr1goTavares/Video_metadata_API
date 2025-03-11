@@ -47,7 +47,7 @@ const HTML_PAGE string = `
             document.getElementById("response").style.display = 'none';
 
             try {
-                const response = await fetch("/video", {
+                const response = await fetch("/video/upload", {
                     method: "POST",
                     body: formData
                 });
