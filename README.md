@@ -1,5 +1,3 @@
-# 🎥 Video Metadata API Documentation 📄
-
 ## 🌟 Overview
 
 The **Video Metadata API** allows users to effortlessly upload video files and retrieve essential metadata information about the uploaded videos. This includes details such as the file name, size, dimensions, aspect ratio, and duration. 
@@ -31,12 +29,21 @@ curl -X POST http://localhost:8080/video/upload \
 ```json
     {
       "fileName": "video.mp4",
-      "size": "10MB",
+      "size": "10Mb",
       "height": 1080,
       "width": 1920,
       "aspectRatio": "16:9",
-      "duration": "120" // <-- seconds
+      "duration": "120"
   }
 ```
 
 ## 📊 Metadata Fields
+
+| Property | Description |
+|:---|:---|
+| filename | The name of uploaded file
+| size | Size of the file in MB
+| height | Height of the video resolution
+| width | Width of the video resolution
+| aspectRatio | Aspect ratio of the video resolution
+| duration | Video duration in secounds
