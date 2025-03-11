@@ -3,9 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	. "videomt/pkg"
 )
 
@@ -18,28 +16,14 @@ func VideoFileHandler(writer http.ResponseWriter, request *http.Request) {
 
   request.ParseMultipartForm(10 << 20) // 10 MB
 
-  file, handler, err := request.FormFile("video")
+  file, _, err := request.FormFile("video")
   if err != nil {
     http.Error(writer, "Error to get file", http.StatusBadRequest)
     return
   }
   defer file.Close()
 
-  tempFile, err := os.CreateTemp("", "uploaded-*.mp4")
-  if err != nil {
-    http.Error(writer, "Error to proccess file", http.StatusInternalServerError)
-		return
-  }
-  
-  fmt.Printf("Temp file name: %s\n", tempFile.Name())
-
-  _, err = io.Copy(tempFile, file)
-	if err != nil {
-		http.Error(writer, "Error has occurred. Try again latter.", http.StatusInternalServerError)
-		return
-	}
-
-  videoMetadata, err := ExtractVideoMetadata(tempFile.Name())
+  videoMetadata, err := ExtractVideoMetadata(&file)
   if err != nil {
     http.Error(writer, "Error to extract metadata.", http.StatusInternalServerError)
     fmt.Println("Error to get metadata\n", err)
@@ -53,5 +37,7 @@ func VideoFileHandler(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Error serialize video metadata", http.StatusInternalServerError)
     fmt.Println("Error to serialize metadata\n", err)
 	}
+  
+  fmt.Println("Video metadata:\n", videoMetadata)
 
 }

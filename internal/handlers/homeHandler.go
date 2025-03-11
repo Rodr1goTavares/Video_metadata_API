@@ -11,50 +11,49 @@ func HomeHandler(writer http.ResponseWriter, request *http.Request) {
 
 const HTML_PAGE string = `
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload de Vídeo</title>
 </head>
 <body>
-    <h1>Enviar Vídeo</h1>
-    
+    <h2>Upload de Vídeo</h2>
     <form id="uploadForm" enctype="multipart/form-data">
-        <label for="video">Escolha um vídeo para enviar:</label>
-        <input type="file" id="video" name="video" accept="video/*" required>
-        <br><br>
-        <input type="submit" value="Enviar Vídeo">
+        <input type="file" id="videoInput" name="video" accept="video/mp4" required>
+        <button type="submit">Enviar</button>
     </form>
-
-    <p id="mensagem"></p>
+    <h3>Resposta do Servidor:</h3>
+    <pre id="response"></pre>
 
     <script>
-        document.getElementById("uploadForm").addEventListener("submit", function(event) {
-            event.preventDefault(); // Impede o redirecionamento
-
+        document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
             const formData = new FormData();
-            const fileInput = document.getElementById("video");
-
+            const fileInput = document.getElementById("videoInput");
+            
             if (fileInput.files.length === 0) {
-                document.getElementById("mensagem").innerText = "Selecione um vídeo antes de enviar.";
+                alert("Selecione um arquivo antes de enviar.");
                 return;
             }
-
+            
             formData.append("video", fileInput.files[0]);
 
-            fetch("http://localhost:8080/video", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById("mensagem").innerText = "Vídeo enviado com sucesso!";
-            })
-            .catch(error => {
-                document.getElementById("mensagem").innerText = "Erro ao enviar o vídeo.";
-                console.error("Erro:", error);
-            });
+            try {
+                const response = await fetch("/video", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error("Erro ao enviar vídeo");
+                }
+
+                const jsonResponse = await response.json();
+                document.getElementById("response").textContent = JSON.stringify(jsonResponse, null, 2);
+            } catch (error) {
+                document.getElementById("response").textContent = "Erro: " + error.message;
+            }
         });
     </script>
 </body>

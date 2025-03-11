@@ -1,69 +1,121 @@
 package pkg
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
-	"github.com/3d0c/gmf"
+	"strconv"
+
+	ffmpeg_go "github.com/u2takey/ffmpeg-go"
 )
 
 type VideoMetadata struct {
   FileName string `json: "fileName"`
-  Size int64 `json:"size"`
-  Duration float32 `json:"duration"`
-  Height int16 `json:"heigth"`
+  Size string `json:"size"`
+  Height int16 `json:"height"`
   Width int16 `json:"width"`
   AspectRatio string `json:"aspectRatio"`
+  Duration string `json:"durationSecounds"`
 }
 
-func ExtractVideoMetadata(filePath string) (*VideoMetadata, error) {
-	file, err := os.Open(filePath)
+
+
+
+func ExtractVideoMetadata(file *multipart.File) (*VideoMetadata, error) {
+	// Create temp file
+	tempFile, err := os.CreateTemp("", "uploaded-*.mp4")
 	if err != nil {
+		fmt.Println("Failed to save file:", err)
 		return nil, err
 	}
-	defer file.Close()
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
 
-	// get file info
-	fileInfo, err := file.Stat()
+	// Copy content to temp file
+	_, err = io.Copy(tempFile, *file)
 	if err != nil {
+		fmt.Println("Failed to copy file:", err)
 		return nil, err
 	}
 
-	// Open video format with FFmpeg
-	formatCtx, err := gmf.NewInputCtx(filePath)
+	tempFile.Sync()
+
+	// get file data with ffmpeg
+	cmd, err := ffmpeg_go.Probe(tempFile.Name())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing ffprobe: %v", err)
 	}
-	defer formatCtx.CloseInput()
 
-	// Extract duration
-	duration := float32(formatCtx.Duration()) / 1000000.0
+	// Decode JSON
+	var metadataMap map[string]interface{}
+	if err := json.Unmarshal([]byte(cmd), &metadataMap); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON: %v", err)
+	}
 
-	// Find width and length stream
-	var width, height int16
-  for i := 0; i < formatCtx.StreamsCnt(); i++ {
-	  stream, err := formatCtx.GetStream(i)
-    if err != nil {
-      return nil, err
-    }
-	  codecCtx := stream.CodecCtx()
-    if int32(codecCtx.Codec().Type()) == gmf.AVMEDIA_TYPE_VIDEO {
-		  width = int16(codecCtx.Width())
-		  height = int16(codecCtx.Height())
-		  break
-	  }
-  }
+	// Extract file size
+	format, ok := metadataMap["format"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid format in metadata")
+	}
 
-	// Calc aspect ratio
-	aspectRatio := fmt.Sprintf("%.2f:1", float32(width)/float32(height))
+	sizeStr, _ := format["size"].(string)
+	sizeBytes, err := strconv.ParseInt(sizeStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse size: %v", err)
+	}
+	sizeMB := fmt.Sprintf("%.2f MB", float64(sizeBytes)/(1024*1024)) // Convertendo para MB
 
-	metadata := VideoMetadata{
-    FileName:    fileInfo.Name(),
-		Size:        fileInfo.Size(),
-		Duration:    duration,
-		Height:      height,
-		Width:       width,
+	// Extract duraction 
+	durationStr, _ := format["duration"].(string)
+
+	// Extract width and heigth
+	streams, ok := metadataMap["streams"].([]interface{})
+	if !ok || len(streams) == 0 {
+		return nil, fmt.Errorf("no streams found in metadata")
+	}
+
+	var width, height int
+	for _, stream := range streams {
+		streamMap, ok := stream.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if codecType, exists := streamMap["codec_type"].(string); exists && codecType == "video" {
+			w, _ := streamMap["width"].(float64)
+			h, _ := streamMap["height"].(float64)
+			width = int(w)
+			height = int(h)
+			break
+		}
+	}
+
+	aspectRatio := calculateAspectRatio(width, height)
+
+	return &VideoMetadata{
+		FileName:    tempFile.Name(),
+		Size:        sizeMB,
+		Height:      int16(height),
+		Width:       int16(width),
 		AspectRatio: aspectRatio,
-	}
+		Duration:    durationStr,
+	}, nil
+}
 
-	return &metadata, nil
+
+func calculateAspectRatio(width int, height int) string {
+	if height == 0 {
+		return "Unknown"
+	}
+	divisor := gcd(width, height)
+	return fmt.Sprintf("%d:%d", width/divisor, height/divisor)
+}
+
+
+func gcd(a, b int) int {
+	for b != 0 {
+		a, b = b, a%b
+	}
+	return a
 }
