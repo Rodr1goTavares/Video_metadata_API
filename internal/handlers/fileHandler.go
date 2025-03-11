@@ -16,14 +16,14 @@ func VideoFileHandler(writer http.ResponseWriter, request *http.Request) {
 
   request.ParseMultipartForm(10 << 20) // 10 MB
 
-  file, _, err := request.FormFile("video")
+  file, header, err := request.FormFile("video")
   if err != nil {
     http.Error(writer, "Error to get file", http.StatusBadRequest)
     return
   }
   defer file.Close()
 
-  videoMetadata, err := ExtractVideoMetadata(&file)
+  videoMetadata, err := ExtractVideoMetadata(header, &file)
   if err != nil {
     http.Error(writer, "Error to extract metadata.", http.StatusInternalServerError)
     fmt.Println("Error to get metadata\n", err)

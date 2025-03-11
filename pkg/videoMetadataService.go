@@ -23,7 +23,7 @@ type VideoMetadata struct {
 
 
 
-func ExtractVideoMetadata(file *multipart.File) (*VideoMetadata, error) {
+func ExtractVideoMetadata(fileHeader *multipart.FileHeader, file *multipart.File) (*VideoMetadata, error) {
 	// Create temp file
 	tempFile, err := os.CreateTemp("", "uploaded-*.mp4")
 	if err != nil {
@@ -94,7 +94,7 @@ func ExtractVideoMetadata(file *multipart.File) (*VideoMetadata, error) {
 	aspectRatio := calculateAspectRatio(width, height)
 
 	return &VideoMetadata{
-		FileName:    tempFile.Name(),
+		FileName:    fileHeader.Filename,
 		Size:        sizeMB,
 		Height:      int16(height),
 		Width:       int16(width),
